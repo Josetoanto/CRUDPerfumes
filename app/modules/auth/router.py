@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from typing import Dict
 
 from app.core.dependencies import get_db
 from app.modules.auth.schemas import (
     RegisterRequest,
     LoginRequest,
     TokenResponse,
+    UserResponse,
 )
 from app.modules.auth.service import register_user, login_user
 
@@ -38,15 +38,17 @@ def http_error(status_code: int, code: str, message: str) -> HTTPException:
 
 @router.post(
     "/register",
+    response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def register(
     data: RegisterRequest,
     db: Session = Depends(get_db),
-) -> Dict:
+) -> UserResponse:
     try:
         user = register_user(db, data)
         db.commit()
+        db.refresh(user)  # 🔥 importante para obtener id actualizado
         return user
 
     except IntegrityError:
